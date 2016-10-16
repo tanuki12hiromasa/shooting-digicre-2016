@@ -7,8 +7,8 @@
 #define PLAYER_ARM_X 32
 #define PLAYER_ARM_Y 32
 #define PLAYER_MOTION 3
-#define SHOT_ENEMY_AMOUNT 18
-#define SHOT_PLAYER_AMOUNT 8
+#define SHOT_ENEMY_AMOUNT 40
+#define SHOT_PLAYER_AMOUNT 12
 #define SHOT_SLAVE_AMOUNT 8
 #define SHOT_ENEMY_KIND 4
 #define SHOT_PLAYER_KIND 4
@@ -20,7 +20,7 @@ static double Fpsmajor = 0;
 int BLACK = GetColor(0, 0, 0);
 int WHITE = GetColor(255, 255, 255);
 int LASERRED = GetColor(255, 60, 100);
-
+int superflag;
 char keydata[256];
 int GameState = 0;
 int HandState = 0;
@@ -55,7 +55,7 @@ struct Player{
     int actnum;//アニメーションさせる番号
     int shotstate;
     int chargetime;
-
+    int shotnumber;
    // int pic[12];//各画像のハンドル
 };
 
@@ -101,6 +101,12 @@ struct Hand {
     int flg;
 };
 
+struct BomberEffect{
+    int x;
+    int y;
+    int acttime;
+};
+
 typedef struct background {
     int x;
     int y;
@@ -114,7 +120,7 @@ typedef struct background {
 class GameSystem {
 public:
     Player player;
-    Shot playershot[SHOT_PLAYER_AMOUNT];
+    Shot playershot[SHOT_PLAYER_AMOUNT] = {0};
     Enemy slave;
     Shot slaveshot[SHOT_SLAVE_AMOUNT];
     Hand hand;
@@ -125,6 +131,7 @@ public:
     int slavesize[ENEMY_KIND][2];
     int enemyshotsize[SHOT_ENEMY_KIND][2];
     int shotdamage[SHOT_ENEMY_KIND];
+    int enemycurrentamount = 0;
 
     int ArrayChecker();
     void ObjectMove();
@@ -132,7 +139,7 @@ public:
     void EnemySporn(int,int,int);
     void TimeManage();
     void EnemyAction();
-    int BulletStatus(bool,int);
+    int EnemyBulletStatus(bool,int);
     void BulletAction();
     void PlayerAction(const char key[256]);
     void SuperHand(const char key[256]);
@@ -152,9 +159,9 @@ GameSystem::GameSystem() {
     hand.flg = 0;
     enemy[0] = { false,0 };
     slave = { false,0 };
-    playershot[0] = { 0 };
-    enemyshot[0] = { 0 };
-    slaveshot[0] = { 0 };
+    playershot[SHOT_PLAYER_AMOUNT] = { 0 };
+    enemyshot[SHOT_ENEMY_AMOUNT] = { 0 };
+    slaveshot[SHOT_SLAVE_AMOUNT] = { 0 };
 }
 
 //経過フレーム数計測とフレーム維持
@@ -232,13 +239,25 @@ void GameSystem::PlayerAction(const char key[256]) {
                 if (playershot[i].memoryflg == false) {
                     playershot[i].flg = true;
                     playershot[i].memoryflg = true;
+                    superflag = i;
+
                     playershot[i].sizex = playershotsize[pb_zero][0];
                     playershot[i].sizey = playershotsize[pb_zero][1];
-                    playershot[i].x = player.x + player.sizex;
+                    playershot[i].x = player.x + player.sizex / 2;
                     playershot[i].y = player.y + player.sizey / 2 - playershot[i].sizey / 2 - 4;
                     playershot[i].dmg = 5;
+                    playershot[i].vel = 20;
+                    playershot[i].theta = 0;
                     playershot[i].type = pb_zero;
+
                     break;
+                }
+            }
+            i++;
+            for (i;i < SHOT_PLAYER_AMOUNT;i++) {
+                if (playershot[i].memoryflg == false) {
+                    playershot[i].memoryflg = true;
+                    player.shotnumber = i;
                 }
             }
             player.chargetime = 0;
@@ -248,55 +267,66 @@ void GameSystem::PlayerAction(const char key[256]) {
     case 1:
         player.chargetime++;
 
-        if (key[KEY_INPUT_J] != 1) {
+        if (key[KEY_INPUT_C] != 1) {
             if (player.chargetime < 6) player.shotstate = 0;
-
-            for (i = 0;i < SHOT_PLAYER_AMOUNT;i++) {
-                if (playershot[i].memoryflg == false) {
-                    playershot[i].flg = true;
-                    playershot[i].memoryflg = true;
-
-                    break;
-                }
+            i = player.shotnumber;
+            playershot[i].flg = true;
+            if (player.chargetime < 5) {
+                playershot[i].type = pb_zero;
+                playershot[i].sizex = playershotsize[pb_zero][0];
+                playershot[i].sizey = playershotsize[pb_zero][1];
+                playershot[i].dmg = 5;
+                playershot[i].vel = 20;
             }
-            if (player.shotstate < 20) {
+            else if (player.chargetime < 20) {
                 playershot[i].type = pb_quarter;
                 playershot[i].sizex = playershotsize[pb_quarter][0];
                 playershot[i].sizey = playershotsize[pb_quarter][1];
                 playershot[i].dmg = 15;
+                playershot[i].vel = 20;
             }
-            else if (player.shotstate < 40) {
+            else if (player.chargetime < 40) {
                 playershot[i].type = pb_half;
                 playershot[i].sizex = playershotsize[pb_half][0];
                 playershot[i].sizey = playershotsize[pb_half][1];
                 playershot[i].dmg = 30;
+                playershot[i].vel = 20;
             }
-            else if (player.shotstate < 60) {
+            else if (player.chargetime < 60) {
                 playershot[i].type = pb_threequarters;
                 playershot[i].sizex = playershotsize[pb_threequarters][0];
                 playershot[i].sizey = playershotsize[pb_threequarters][1];
                 playershot[i].dmg = 60;
+                playershot[i].vel = 20;
             }
             else {
                 playershot[i].type = pb_fullcharge;
                 playershot[i].sizex = playershotsize[pb_fullcharge][0];
                 playershot[i].sizey = playershotsize[pb_fullcharge][1];
                 playershot[i].dmg = 100;
+                playershot[i].vel = 20;
             }
-            playershot[i].x = player.x + player.sizex;
+            playershot[i].x = player.x + player.sizex/2;
             playershot[i].y = player.y + player.sizey / 2 - playershot[i].sizey / 2 - 4;
-
+            playershot[i].theta = 0;
             player.shotstate = 0;
         }
     }
 
 }
 
-//自弾移動関数
+//自弾移動＆排除関数
 void GameSystem::PlayerShot() {
     int i;
     for (i = 0;i < SHOT_PLAYER_AMOUNT;i++) {
-
+        if (playershot[i].flg == true) {
+            playershot[i].x += playershot[i].vel*cos(playershot[i].theta);
+            playershot[i].y += playershot[i].vel*sin(playershot[i].theta);
+            if (playershot[i].x >= 680) {
+                playershot[i].flg = false;
+                playershot[i].memoryflg = false;
+            }
+        }
     }
 }
 
@@ -314,7 +344,8 @@ public:
     int pic_shot_enemy[SHOT_ENEMY_KIND] = { 0 };
     int pic_shot_player[SHOT_PLAYER_KIND] = { 0 };
     int pic_shot_slave[SHOT_ENEMY_KIND] = { 0 };
-    void DrawObject(const Player p, const Hand hd, const Enemy sl, const Enemy *e, const BG bg1, const BG bg2);
+    void DrawObject(const Player p, const Hand hd, const Enemy sl, const Enemy *e,int amount,
+        const Shot *ps, const Shot *ss, const Shot *es, const BG bg1, const BG bg2);
     void PictureSizeGet(int plshotsize[SHOT_PLAYER_KIND][2], int slavesize[ENEMY_KIND][2],int enesize[ENEMY_KIND][2],int shotsize[SHOT_ENEMY_KIND][2]);
 };
 
@@ -363,8 +394,8 @@ Picture::Picture() {
     pic_slave[ZAKO_CANNON][2] = LoadGraph("zako_rocket00.bmp");
 
     //自弾画像
-    pic_shot_player[pb_zero] = LoadGraph("bulletp.bmp");
-    pic_shot_player[pb_quarter] = LoadGraph("");
+    pic_shot_player[pb_zero] = LoadGraph("bullet\\p_zero.bmp");
+    pic_shot_player[pb_quarter] = LoadGraph("bulletp.bmp");
     pic_shot_player[pb_half] = LoadGraph("");
     pic_shot_player[pb_threequarters] = LoadGraph("");
     pic_shot_player[pb_fullcharge] = LoadGraph("");
@@ -553,7 +584,7 @@ void GameSystem::SlaveControl(const char key[256]){
     }
 }
 
-
+#if 0
 //敵空き配列探し
 int GameSystem::ArrayChecker(){
     int i=0;
@@ -564,11 +595,19 @@ int GameSystem::ArrayChecker(){
     }
     return -1;
 }
+#endif
+
 //敵スポーン関数
 void GameSystem::EnemySporn(int enemynumber,int x,int y) {
 
-    int i = ArrayChecker();
-    if (i = -1) return;
+    int i;
+    i = 0;
+    while (i < ENEMY_AMOUNT) {
+        if (enemy[i].flg == false && enemy[i].memoryflg == false) { break; }
+        i++;
+    }
+
+    if (i == -1) return;
 
     enemy[i].flg = true;
     enemy[i].memoryflg = true;
@@ -582,11 +621,10 @@ void GameSystem::EnemySporn(int enemynumber,int x,int y) {
         enemy[i].life = 5;
         break;
     case ZAKO_FISHBORN:
+        enemy[i].life = 5;
         break;
     case ZAKO_MONORIS:
         enemy[i].life = 20;
-        (enemy[i].y >= 240) ? (enemy[i].y = 360) : (enemy[i].y = 120);
-        enemy[i].x = 640;
         break;
     case ZAKO_TOBIUO:
         break;
@@ -595,6 +633,7 @@ void GameSystem::EnemySporn(int enemynumber,int x,int y) {
     }
     enemy[i].flg = true;
     enemy[i].memoryflg = true;
+    enemycurrentamount++;
 }
 //時間割関数
 void GameSystem::TimeManage() {
@@ -611,8 +650,8 @@ void GameSystem::TimeManage() {
 
 
 
-//弾生成可否＆ステータス付け
-int GameSystem::BulletStatus(bool wheather_enemy,const int bulletnumber) {
+//敵弾生成可否＆ステータス付け
+int GameSystem::EnemyBulletStatus(bool wheather_enemy,const int bulletnumber) {
     int i;
     Shot *shot;
     wheather_enemy == true ? (shot = enemyshot) : (shot = slaveshot);
@@ -879,9 +918,11 @@ void BGScrol(BG *bg){
 }
 
 //ゲーム描画関数
-void Picture::DrawObject(const Player p,const Hand hd,const Enemy sl , const Enemy *e ,const BG bg1,const BG bg2) {
-
-    int i;
+void Picture::DrawObject(const Player p,const Hand hd,const Enemy sl , const Enemy *e ,const int amount,
+                         const Shot *ps ,const Shot *ss, const Shot *es,
+                         const BG bg1,const BG bg2)
+    {
+    int i,num;
 
     DrawGraph(bg1.x, bg1.y, bg1.pic, FALSE);//主背景
     if (bg2.flg == true)  DrawGraph(bg2.x, bg2.y, bg2.pic, FALSE);  //次背景
@@ -898,12 +939,32 @@ void Picture::DrawObject(const Player p,const Hand hd,const Enemy sl , const Ene
 
     if (sl.flg == true)  DrawGraph(sl.x, sl.y, pic_slave[sl.enumber][sl.actnumber], TRUE);//奴隷
     
+    num = 0;
     for (i = 0;i < ENEMY_AMOUNT;i++) {//雑魚敵
         if ((e + i)->flg == true) {
             DrawGraph((e + i)->x, (e + i)->y, pic_enemy[(e + i)->enumber][(e + i)->actnumber], TRUE);
+            num++;
         }
+        if (num >= amount)
+            break;
     }
 
+    //弾
+    for (i = 0;i < SHOT_PLAYER_AMOUNT;i++) {
+        if ((ps + i)->flg == true) {
+            DrawGraph((ps + i)->x, (ps + i)->y, pic_shot_player[(ps + i)->type], TRUE);
+        }
+    }
+    for (i = 0;i < SHOT_ENEMY_AMOUNT ;i++) {
+        if ((es + i)->flg == true) {
+            DrawGraph((es + i)->x, (es + i)->y, pic_shot_enemy[(es + i)->type], TRUE);
+        }
+    }
+    for (i = 0;i < SHOT_SLAVE_AMOUNT ;i++) {
+        if ((ss + i)->flg == true) {
+            DrawGraph((ss + i)->x, (ss + i)->y, pic_shot_enemy[(ss + i)->type], TRUE);
+        }
+    }
 
     /*    敵サイズ確認用
     int fig1;
@@ -919,7 +980,7 @@ void GameSystem::UIDraw() {
     DrawFormatString(10, 25, BLACK, "%.2f", Fpsmajor);
 
     DrawFormatString(600, 10, BLACK, "%d", player.life);
-    //if (flg == 1)DrawString(600, 25, "OK", WHITE);
+    DrawFormatString(600, 25, WHITE, "%d",superflag);
 }
 
 
@@ -996,11 +1057,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpCmdLine
         if (game.hand.flg == false) game.SuperHand(keydata);
         else game.SlaveControl(keydata);
 
+        game.PlayerShot();
+
         game.EnemyDestroy();
 
         game.PlayerAction(keydata);
 
-        picture.DrawObject(game.player, game.hand, game.slave, game.enemy, background[0], background[1]);
+        picture.DrawObject(game.player, game.hand, game.slave, game.enemy,game.enemycurrentamount,
+            game.playershot,game.slaveshot ,game.enemyshot , background[0], background[1]);
 
         game.UIDraw();
 
