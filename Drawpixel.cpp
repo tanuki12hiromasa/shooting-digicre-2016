@@ -36,12 +36,12 @@ enum NameBulletPlayer {
 
 //ìGã@íeñºèÃ
 enum NameBulletEnemy {
-    solidball=0,missile=1,lazer=2
+    solidball = 0, missile = 1, lazer = 2
 };
 
 int AtariJudge(int ax, int ay, int asizex, int asizey, int bx, int by, int bsizex, int bsizey, int marginx, int marginy);
 
-struct Player{
+struct Player {
     int x;
     int y;
     int dx;
@@ -56,7 +56,7 @@ struct Player{
     int shotstate;
     int chargetime;
     int shotnumber;
-   // int pic[12];//äeâÊëúÇÃÉnÉìÉhÉã
+    // int pic[12];//äeâÊëúÇÃÉnÉìÉhÉã
 };
 
 struct Enemy {
@@ -101,7 +101,7 @@ struct Hand {
     int flg;
 };
 
-struct BomberEffect{
+struct BomberEffect {
     int x;
     int y;
     int acttime;
@@ -120,12 +120,13 @@ typedef struct background {
 class GameSystem {
 public:
     Player player;
-    Shot playershot[SHOT_PLAYER_AMOUNT] = {0};
+    Shot playershot[SHOT_PLAYER_AMOUNT] = { 0 };
     Enemy slave;
     Shot slaveshot[SHOT_SLAVE_AMOUNT];
     Hand hand;
     Enemy enemy[ENEMY_AMOUNT];
     Shot enemyshot[SHOT_ENEMY_AMOUNT];
+    Enemy reticle;
     int playershotsize[SHOT_PLAYER_KIND][2];
     int enemysize[ENEMY_KIND][2];
     int slavesize[ENEMY_KIND][2];
@@ -136,10 +137,11 @@ public:
     int ArrayChecker();
     void ObjectMove();
     void ObjectAtari();
-    void EnemySporn(int,int,int);
+    void EnemySporn(int, int, int);
     void TimeManage();
     void EnemyAction();
-    int EnemyBulletStatus(bool,int);
+    int EnemyBulletStatus(int x, int y, int vel, double theta, const int bulletnumber,
+        int i, bool wheather_enemy, bool aim_player);
     void BulletAction();
     void PlayerAction(const char key[256]);
     void SuperHand(const char key[256]);
@@ -165,11 +167,11 @@ GameSystem::GameSystem() {
 }
 
 //åoâﬂÉtÉåÅ[ÉÄêîåvë™Ç∆ÉtÉåÅ[ÉÄà€éù
-void TimeManager(int *before,int *after,int *be60){
+void TimeManager(int *before, int *after, int *be60) {
     *after = GetNowCount();
-    if(1000/60 > *after - *before) WaitTimer( 1000 / 60 - (*after - *before) );
+    if (1000 / 60 > *after - *before) WaitTimer(1000 / 60 - (*after - *before));
     *before = GetNowCount();
-    if (Framecount % 60 == 0) { 
+    if (Framecount % 60 == 0) {
         Fpsmajor = 60000.0 / (*after - *be60);
         *be60 = *before;
     }
@@ -186,7 +188,7 @@ void GameSystem::ObjectAtari() {
     int yif = player.y + player.dy;
     if (xif >= 0 && xif + player.sizex <= 640)
         player.x = xif;
-    if (yif >= 0 && yif + player.sizey <= 480) 
+    if (yif >= 0 && yif + player.sizey <= 480)
         player.y = yif;
 }
 //ÉvÉåÉCÉÑÅ[çsìÆä÷êî
@@ -306,7 +308,7 @@ void GameSystem::PlayerAction(const char key[256]) {
                 playershot[i].dmg = 100;
                 playershot[i].vel = 20;
             }
-            playershot[i].x = player.x + player.sizex/2;
+            playershot[i].x = player.x + player.sizex / 2;
             playershot[i].y = player.y + player.sizey / 2 - playershot[i].sizey / 2 - 4;
             playershot[i].theta = 0;
             player.shotstate = 0;
@@ -332,7 +334,7 @@ void GameSystem::PlayerShot() {
 
 //ìGñºèÃ
 enum enemy_picture_num {
-    ZAKO_ROCKET = 0,ZAKO_FISHBORN,ZAKO_TOBIUO,ZAKO_MONORIS,ZAKO_CANNON
+    ZAKO_ROCKET = 0, ZAKO_FISHBORN, ZAKO_TOBIUO, ZAKO_MONORIS, ZAKO_CANNON
 };
 //ÉOÉâÉtÉBÉbÉNï\é¶ä÷åWÉNÉâÉX
 class Picture {
@@ -344,9 +346,9 @@ public:
     int pic_shot_enemy[SHOT_ENEMY_KIND] = { 0 };
     int pic_shot_player[SHOT_PLAYER_KIND] = { 0 };
     int pic_shot_slave[SHOT_ENEMY_KIND] = { 0 };
-    void DrawObject(const Player p, const Hand hd, const Enemy sl, const Enemy *e,int amount,
+    void DrawObject(const Player p, const Hand hd, const Enemy sl, const Enemy *e, int amount,
         const Shot *ps, const Shot *ss, const Shot *es, const BG bg1, const BG bg2);
-    void PictureSizeGet(int plshotsize[SHOT_PLAYER_KIND][2], int slavesize[ENEMY_KIND][2],int enesize[ENEMY_KIND][2],int shotsize[SHOT_ENEMY_KIND][2]);
+    void PictureSizeGet(int plshotsize[SHOT_PLAYER_KIND][2], int slavesize[ENEMY_KIND][2], int enesize[ENEMY_KIND][2], int shotsize[SHOT_ENEMY_KIND][2]);
 };
 
 //èâä˙âªéûâÊëúäiî[ä÷êî ÉRÉìÉXÉgÉâÉNÉ^
@@ -364,7 +366,7 @@ Picture::Picture() {
     pic_player[motion_forward][2] = LoadGraph("player\\player_forward02.bmp");
 
     //ìGâÊëú
-    pic_enemy[ZAKO_ROCKET][0]=LoadGraph("zako_rocket00.bmp");
+    pic_enemy[ZAKO_ROCKET][0] = LoadGraph("zako_rocket00.bmp");
     pic_enemy[ZAKO_ROCKET][1] = LoadGraph("zako_rocket00.bmp");
     pic_enemy[ZAKO_ROCKET][2] = LoadGraph("zako_rocket00.bmp");
     pic_enemy[ZAKO_FISHBORN][0] = LoadGraph("zako_rocket00.bmp");
@@ -408,7 +410,7 @@ Picture::Picture() {
 }
 
 //âÊëúÉTÉCÉYë™íËäiî[ä÷êî
-void Picture::PictureSizeGet(int plshotsize[SHOT_PLAYER_KIND][2],int slavesize[ENEMY_KIND][2], int enesize[ENEMY_KIND][2], int enshotsize[SHOT_ENEMY_KIND][2]) {
+void Picture::PictureSizeGet(int plshotsize[SHOT_PLAYER_KIND][2], int slavesize[ENEMY_KIND][2], int enesize[ENEMY_KIND][2], int enshotsize[SHOT_ENEMY_KIND][2]) {
     int i;
     for (i = 0;i < SHOT_PLAYER_KIND;i++) {
         GetGraphSize(pic_shot_player[i], &plshotsize[i][0], &plshotsize[i][1]);
@@ -417,7 +419,7 @@ void Picture::PictureSizeGet(int plshotsize[SHOT_PLAYER_KIND][2],int slavesize[E
         GetGraphSize(pic_slave[i][0], &slavesize[i][0], &slavesize[i][1]);
     }
     for (i = 0;i < ENEMY_KIND;i++) {
-        GetGraphSize(pic_enemy[i][0],&enesize[i][0],&enesize[i][1]);
+        GetGraphSize(pic_enemy[i][0], &enesize[i][0], &enesize[i][1]);
     }
     for (i = 0;i < SHOT_ENEMY_KIND;i++) {
         GetGraphSize(pic_shot_enemy[i], &enshotsize[i][0], &enshotsize[i][1]);
@@ -426,23 +428,23 @@ void Picture::PictureSizeGet(int plshotsize[SHOT_PLAYER_KIND][2],int slavesize[E
 }
 
 //êGéËçsìÆä÷êî èëÇ´íºÇµÇΩÇ¢
-void GameSystem::SuperHand(const char key[256]){
+void GameSystem::SuperHand(const char key[256]) {
     int i;
     static int count = 0;
     double l, r;
-
+    int temp = 0;
 
     int armx = player.x + PLAYER_ARM_X;
     int army = player.y + PLAYER_ARM_Y;
 
     if (HandState == 0) {                    //êGéËë“ã@
-        if (key[KEY_INPUT_Z]==1) HandState = 1;
+        if (key[KEY_INPUT_Z] == 1) HandState = 1;
     }
     else if (HandState == 1) {                  //ÉåÅ[ÉUÅ[ÉTÉCÉg
         count = 0;
 
         for (i = 0;i < ENEMY_AMOUNT;i++) {
-            if (army >= enemy[i].y && army <= enemy[i].y + enemy[i].sizey && enemy[i].flg==true) {
+            if (army >= enemy[i].y && army <= enemy[i].y + enemy[i].sizey && enemy[i].flg == true) {
                 hand.enemy = i;
                 count++;
             }
@@ -454,11 +456,11 @@ void GameSystem::SuperHand(const char key[256]){
         if (count > 0) {
             hand.x[1] = enemy[hand.enemy].x + enemy[hand.enemy].sizex / 2;
         }
-        else { 
+        else {
             hand.x[1] = 640;
         }
         if (key[KEY_INPUT_Z] == 0) {
-            if (hand.enemy >= 0) HandState = 2, hand.number = 0 ;
+            if (hand.enemy >= 0) HandState = 2, hand.number = 0;
             else HandState = 0, hand.enemy = -1;
         }
     }
@@ -513,7 +515,7 @@ void GameSystem::SuperHand(const char key[256]){
         if (count >= 10) {
             enemy[hand.enemy].flg = false;
             enemy[hand.enemy].actnumber = -1;
-      //      SlavePicture(sl);
+            //      SlavePicture(sl);
             slave.flg = true;
             HandState = 4;
         }
@@ -553,11 +555,11 @@ void GameSystem::SuperHand(const char key[256]){
         }
     }
     else HandState = 0;
-    
+
 }
 
 //ìzóÍêßå‰ä÷êî
-void GameSystem::SlaveControl(const char key[256]){
+void GameSystem::SlaveControl(const char key[256]) {
     slave.x = player.x + player.sizex - 2;
     slave.y = player.y + (player.sizey / 2 + 4) - slave.sizey / 2;
     switch (slave.enumber) {
@@ -586,8 +588,8 @@ void GameSystem::SlaveControl(const char key[256]){
 
 #if 0
 //ìGãÛÇ´îzóÒíTÇµ
-int GameSystem::ArrayChecker(){
-    int i=0;
+int GameSystem::ArrayChecker() {
+    int i = 0;
     for (i = 0;i < ENEMY_AMOUNT;i++) {
         if (enemy[i].flg == false && enemy[i].memoryflg == false) {
             return i;
@@ -598,7 +600,7 @@ int GameSystem::ArrayChecker(){
 #endif
 
 //ìGÉXÉ|Å[Éìä÷êî
-void GameSystem::EnemySporn(int enemynumber,int x,int y) {
+void GameSystem::EnemySporn(int enemynumber, int x, int y) {
 
     int i;
     i = 0;
@@ -651,21 +653,28 @@ void GameSystem::TimeManage() {
 
 
 //ìGíeê∂ê¨â¬î€ÅïÉXÉeÅ[É^ÉXïtÇØ
-int GameSystem::EnemyBulletStatus(bool wheather_enemy,const int bulletnumber) {
-    int i;
+int GameSystem::EnemyBulletStatus(int x, int y, int vel, double theta, const int bulletnumber,
+    int i, bool wheather_enemy, bool aim_player)
+{
     Shot *shot;
     wheather_enemy == true ? (shot = enemyshot) : (shot = slaveshot);
-    for (i = 0;i < SHOT_ENEMY_AMOUNT;i++) {
-        if ((shot + i)->flg == false && (shot + i)->memoryflg == false) {
+    for (i;i < SHOT_ENEMY_AMOUNT;i++) {
+        if ((shot + i)->memoryflg == false) {
             (shot + i)->memoryflg = true;
+            (shot + i)->flg = true;
             (shot + i)->dmg = shotdamage[bulletnumber];
-            (shot + i)->sizex = enemyshotsize[i][0];
-            (shot + i)->sizey = enemyshotsize[i][1];
-            return i;
+            (shot + i)->sizex = enemyshotsize[bulletnumber][0];
+            (shot + i)->sizey = enemyshotsize[bulletnumber][1];
+            (shot + i)->x = x;
+            (shot + i)->y = y;
+            (shot + i)->vel = vel;
+            (shot + i)->theta = theta;
+            if (aim_player == true)
+                BulletDegree(&((shot + i)->theta), x, y, player.x + player.sizex / 2, player.y + player.sizey / 2);
             break;
         }
     }
-    return -1;
+    return i;
 }
 
 void GameSystem::ObjectMove() {
@@ -673,17 +682,17 @@ void GameSystem::ObjectMove() {
 }
 
 //é©óRíeÇÃäpìxÇÃä÷êî aÇÕíeå≥ bÇÕñ⁄ïW
-void BulletDegree(double *theta,int ax,int ay,int bx,int by) {
+void BulletDegree(double *theta, int ax, int ay, int bx, int by) {
     int delx = bx - ax, dely = by - ay;
     double r = sqrt((double)(delx*delx + dely*dely));
-    if(dely>=0) *theta = acos((double)delx/r);
+    if (dely >= 0) *theta = acos((double)delx / r);
     else *theta = -acos((double)delx / r);
 }
 
 
 //ìGçsìÆä÷êî
 void GameSystem::EnemyAction() {
-    int i,j,k;
+    int i, j, k;
     for (i = 0;i < ENEMY_AMOUNT;i++) {
         if (enemy[i].flg == true) {
             enemy[i].movetime++;
@@ -694,41 +703,32 @@ void GameSystem::EnemyAction() {
                 if (enemy[i].x > 480)enemy[i].x -= 3;
 
                 //íeêßå‰
-                if (enemy[i].acttime % 300 == 0) {
-                    j = BulletStatus(true, solidball);
-                    if (j >= 0 && enemyshot[j].memoryflg == true) {
-                        enemyshot[j].type = solidball;
-                        enemyshot[j].x = enemy[i].x + 2;
-                        enemyshot[j].y = enemy[i].y + enemy[i].sizey / 2;
-                        BulletDegree(&(enemyshot[j].theta), enemyshot[j].x + enemyshot[j].sizex / 2, enemyshot[j].y + enemyshot[j].sizey / 2, player.x + player.sizex / 2, player.y + player.sizey / 2);
-                        enemyshot[j].vel = 4;
-                    }
+                if (enemy[i].movetime % 300 == 0) {
+                    EnemyBulletStatus(enemy[i].x + 2, enemy[i].y + enemy[i].sizey / 2, 15, PI, solidball, 0, true, true);
                 }
                 break;
             case ZAKO_FISHBORN:
                 break;
             case ZAKO_MONORIS:
                 if (enemy[i].movetime < 60) {
-                    enemy[i].x -= 1;
+                    enemy[i].x -= 2;
                 }
                 else if (enemy[i].movetime < 100) {
-                    enemy[i].x += 1;
+                    enemy[i].x += 2;
                     enemy[i].y -= 3;
                 }
                 else {
                     enemy[i].x -= 2;
                 }
                 if (enemy[i].movetime == 60 && enemy[i].movetime == 60) {
+                    j = 0;
                     for (k = 0;k < 6;k++) {
-                        j = BulletStatus(true, solidball);
-                        enemyshot[j].theta = PI / 6 * (2 * k - 1);
-                        enemyshot[j].x = enemy[i].x + enemy[i].sizex / 2;
-                        enemyshot[j].y = enemy[i].y + enemy[i].sizey / 2;
-                        enemyshot[j].vel = 6;
+                        j = EnemyBulletStatus(enemy[i].x + enemy[i].sizex / 2, enemy[i].y + enemy[i].sizey / 2,
+                            10, PI / 3 * k, solidball, j, true, true);
                     }
-                    
+
                 }
-                break ;
+                break;
             case ZAKO_TOBIUO:
                 break;
             case ZAKO_CANNON:
@@ -756,7 +756,7 @@ void GameSystem::BulletAction() {
 
 //îÌíeîªíËèàóùä÷êî
 void GameSystem::JudgeBombered() {
-    int i,j;
+    int i, j;
     if (slave.flg == true) {
         //ìGíe-ìzóÍ
         for (i = 0;i < SHOT_ENEMY_AMOUNT;i++) {
@@ -768,20 +768,20 @@ void GameSystem::JudgeBombered() {
         //ìG-ìzóÍ
         for (i = 0;i < ENEMY_AMOUNT;i++) {
             if (enemy[i].flg == true && AtariJudge(enemy[i].x, enemy[i].y, enemy[i].sizex, enemy[i].sizey, slave.x, slave.y, slave.sizex, slave.sizey, 0, 0)) {
-                    slave.life -= enemy[i].life;
-                    enemy[i].life = 0;
+                slave.life -= enemy[i].life;
+                enemy[i].life = 0;
             }
         }
     }
     //ìGíe-é©ã@
     for (i = 0;i < SHOT_ENEMY_AMOUNT;i++) {
-       if (enemyshot[i].flg == true && AtariJudge(enemyshot[i].x, enemyshot[i].y, enemyshot[i].sizex, enemyshot[i].sizey, player.x, player.y, player.sizex, player.sizey, 4, 4)) {
-           if (player.dmgflg == false) {
-            player.life -= enemyshot[i].dmg;
-            player.dmgflg = true;
-           }
-           enemyshot[i].dmg = 0;
-            
+        if (enemyshot[i].flg == true && AtariJudge(enemyshot[i].x, enemyshot[i].y, enemyshot[i].sizex, enemyshot[i].sizey, player.x, player.y, player.sizex, player.sizey, 4, 4)) {
+            if (player.dmgflg == false) {
+                player.life -= enemyshot[i].dmg;
+                player.dmgflg = true;
+            }
+            enemyshot[i].dmg = 0;
+
         }
     }
 
@@ -789,7 +789,7 @@ void GameSystem::JudgeBombered() {
         if (enemy[i].flg == true) {
             //é©íe-ìGã@
             for (j = 0;j < SHOT_PLAYER_AMOUNT;j++) {
-                if (playershot[j].flg==true && AtariJudge(playershot[j].x, playershot[j].y, playershot[j].sizex, playershot[j].sizey, enemy[i].x, enemy[i].y, enemy[i].sizex, enemy[i].sizey, 0, 0)) {
+                if (playershot[j].flg == true && AtariJudge(playershot[j].x, playershot[j].y, playershot[j].sizex, playershot[j].sizey, enemy[i].x, enemy[i].y, enemy[i].sizex, enemy[i].sizey, 0, 0)) {
                     enemy[i].life -= playershot[j].dmg;
                     playershot[j].dmg = 0;
                 }
@@ -804,7 +804,7 @@ void GameSystem::JudgeBombered() {
         }
     }
     //ìGã@-é©ã@
-    for (i = 0;i < ENEMY_AMOUNT;i++){
+    for (i = 0;i < ENEMY_AMOUNT;i++) {
         if (enemy[i].flg == true && AtariJudge(enemy[i].x, enemy[i].y, enemy[i].sizex, enemy[i].sizey, player.x, player.y, player.sizex, player.sizey, 4, 4)) {
             if (player.dmgflg == false) {
                 player.life -= enemy[i].life;
@@ -841,7 +841,7 @@ void GameSystem::EnemyDestroy() {
     int i;
     for (i = 0;i < ENEMY_AMOUNT;i++) {
         if (enemy[i].life <= 0 && enemy[i].memoryflg == true) {
-            
+
         }
     }
 }
@@ -866,14 +866,14 @@ void GameSystem::GameOver() {
 
             WaitTimer(60 / 1000);
             ScreenFlip();
-            
+
         }
     }
 }
 
 //îwåiâÊëúä«óù
-void BGPicture(BG *bg){
-    static int num=1;
+void BGPicture(BG *bg) {
+    static int num = 1;
     switch (num)
     {
     case 1:
@@ -882,63 +882,63 @@ void BGPicture(BG *bg){
     case 2:
         break;
     }
-    
-    GetGraphSize(bg->pic, &(bg->sizex),&(bg->sizey));
+
+    GetGraphSize(bg->pic, &(bg->sizex), &(bg->sizey));
     //num++;
 
 }
 
 //îwåiÉXÉNÉçÅ[Éãä÷êî
-void BGScrol(BG *bg){
+void BGScrol(BG *bg) {
 
     if (bg->x >= -(bg->sizex) + 640) {
         bg->x -= 1;
     }
 
-/*ó’éûÇÃë[íuÇ…ÇÊÇËÉRÉÅÉìÉgÉAÉEÉgÅiëOä˙ç≈èIî≠ï\ópÅj
+    /*ó’éûÇÃë[íuÇ…ÇÊÇËÉRÉÅÉìÉgÉAÉEÉgÅiëOä˙ç≈èIî≠ï\ópÅj
     bg ->x -= 1;
     if ((bg + 1)->flg == true) ((bg + 1)->x -= 1);
 
     //éüÇÃîwåiê∂ê¨
     if (bg->x == -(bg->sizex) + 640 && (bg+1)->flg==false ) {
-        BGPicture((bg + 1)); // éüÇÃîwåiâÊëú
+    BGPicture((bg + 1)); // éüÇÃîwåiâÊëú
 
-        (bg + 1)->flg = true;
-        (bg + 1)->x = 640;
+    (bg + 1)->flg = true;
+    (bg + 1)->x = 640;
     }
 
     //éÂîwåiÇÃåë„
     if ((-(bg->x) >= bg->sizex) && ((bg+1)->flg==true) ) {
-        
-        DeleteGraph(bg->pic);
-        *bg = *(bg + 1);
-        (bg + 1)->flg = false;
+
+    DeleteGraph(bg->pic);
+    *bg = *(bg + 1);
+    (bg + 1)->flg = false;
     }
-*/
+    */
 }
 
 //ÉQÅ[ÉÄï`âÊä÷êî
-void Picture::DrawObject(const Player p,const Hand hd,const Enemy sl , const Enemy *e ,const int amount,
-                         const Shot *ps ,const Shot *ss, const Shot *es,
-                         const BG bg1,const BG bg2)
-    {
-    int i,num;
+void Picture::DrawObject(const Player p, const Hand hd, const Enemy sl, const Enemy *e, const int amount,
+    const Shot *ps, const Shot *ss, const Shot *es,
+    const BG bg1, const BG bg2)
+{
+    int i, num;
 
     DrawGraph(bg1.x, bg1.y, bg1.pic, FALSE);//éÂîwåi
     if (bg2.flg == true)  DrawGraph(bg2.x, bg2.y, bg2.pic, FALSE);  //éüîwåi
-    
-    //êGéË
-    if (HandState == 1) DrawLine(hd.x[0], hd.y[0], hd.x[1], hd.y[1], LASERRED); 
+
+                                                                    //êGéË
+    if (HandState == 1) DrawLine(hd.x[0], hd.y[0], hd.x[1], hd.y[1], LASERRED);
     else if (HandState >= 2) {
         for (i = 0;i < hd.number;i++) {
             DrawRotaGraph(hd.x[i], hd.y[i], 1.0, hd.theta, hd.pic, TRUE, FALSE);
         }
     }
-    
+
     DrawGraph(p.x, p.y, pic_player[p.motionnum][p.actnum], TRUE);//ÉvÉåÉCÉÑÅ[
 
     if (sl.flg == true)  DrawGraph(sl.x, sl.y, pic_slave[sl.enumber][sl.actnumber], TRUE);//ìzóÍ
-    
+
     num = 0;
     for (i = 0;i < ENEMY_AMOUNT;i++) {//éGãõìG
         if ((e + i)->flg == true) {
@@ -955,12 +955,12 @@ void Picture::DrawObject(const Player p,const Hand hd,const Enemy sl , const Ene
             DrawGraph((ps + i)->x, (ps + i)->y, pic_shot_player[(ps + i)->type], TRUE);
         }
     }
-    for (i = 0;i < SHOT_ENEMY_AMOUNT ;i++) {
+    for (i = 0;i < SHOT_ENEMY_AMOUNT;i++) {
         if ((es + i)->flg == true) {
             DrawGraph((es + i)->x, (es + i)->y, pic_shot_enemy[(es + i)->type], TRUE);
         }
     }
-    for (i = 0;i < SHOT_SLAVE_AMOUNT ;i++) {
+    for (i = 0;i < SHOT_SLAVE_AMOUNT;i++) {
         if ((ss + i)->flg == true) {
             DrawGraph((ss + i)->x, (ss + i)->y, pic_shot_enemy[(ss + i)->type], TRUE);
         }
@@ -980,7 +980,7 @@ void GameSystem::UIDraw() {
     DrawFormatString(10, 25, BLACK, "%.2f", Fpsmajor);
 
     DrawFormatString(600, 10, BLACK, "%d", player.life);
-    DrawFormatString(600, 25, WHITE, "%d",superflag);
+    DrawFormatString(600, 25, WHITE, "%d", superflag);
 }
 
 
@@ -1001,24 +1001,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpCmdLine
 
     //ÉQÅ[ÉÄèâä˙âª
     //ÉVÉXÉeÉÄïœêîèâä˙âª
-    
+
     int timebefore;
     int timeafter;
     int time60before;
-    
+
 
     //ïœêîèâä˙âª
     GameSystem game;
 
 
     BG background[2] = {
-        {0,0,1060,480,0,true},
-        {0,0,0,480},
+        { 0,0,1060,480,0,true },
+        { 0,0,0,480 },
     };
     Picture picture;
-    picture.PictureSizeGet(game.playershotsize ,game.slavesize, game.enemysize, game.enemyshotsize);
+    picture.PictureSizeGet(game.playershotsize, game.slavesize, game.enemysize, game.enemyshotsize);
 
-   /* plr.pic[0] = LoadGraph("player_center.bmp");
+    /* plr.pic[0] = LoadGraph("player_center.bmp");
     plr.pic[PLAYER_BACK] = LoadGraph("player_back.bmp");
     plr.pic[PLAYER_FORWARD] = LoadGraph("player_forward.bmp");*/
     game.hand.pic = LoadGraph("syokusyu02.bmp");
@@ -1026,12 +1026,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpCmdLine
     background[0].pic = LoadGraph("stage1_all.png");
     background[1].flg = false;
     GetGraphSize(background[0].pic, &background[0].sizex, &background[0].sizey);
-   /* EnemyPicture(enemy);
+    /* EnemyPicture(enemy);
     SlavePicture(&slave);*/
 
     //âºÉ^ÉCÉgÉãâÊñ 
     int cr;
-    cr = GetColor(254,255,255);
+    cr = GetColor(254, 255, 255);
     DrawString(220, 240 - 32, "Press any buttom", cr);
     ScreenFlip();
     WaitKey();
@@ -1043,7 +1043,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpCmdLine
 
     while (CheckHitKey(KEY_INPUT_ESCAPE) == 0 && ClearDrawScreen() == 0 && ProcessMessage() == 0) {
 
-        
+
         GetHitKeyStateAll(keydata);
 
         BGScrol(background);
@@ -1063,8 +1063,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpCmdLine
 
         game.PlayerAction(keydata);
 
-        picture.DrawObject(game.player, game.hand, game.slave, game.enemy,game.enemycurrentamount,
-            game.playershot,game.slaveshot ,game.enemyshot , background[0], background[1]);
+        picture.DrawObject(game.player, game.hand, game.slave, game.enemy, game.enemycurrentamount,
+            game.playershot, game.slaveshot, game.enemyshot, background[0], background[1]);
 
         game.UIDraw();
 
@@ -1088,8 +1088,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpCmdLine
 }
 
 //ìñÇΩÇËîªíËä÷êî. aånÇ™ìñÇƒÇÈë§,bånÇ™êHÇÁÇ§ë§.marginÇÕìñÇΩÇËîªíËÇÃóPó\.ï‘ÇËílÇÕ0or1.
-int AtariJudge(int ax,int ay,int asizex,int asizey,int bx,int by,int bsizex,int bsizey,int marginx,int marginy){
-    if (ax < (bx + bsizex - marginx) && (ax + asizex) > (bx + marginx) && ay < (by + bsizey - marginy) && (ay + asizey) > (by + marginy)) {
+int AtariJudge(int ax, int ay, int asizex, int asizey, int bx, int by, int bsizex, int bsizey, int marginx, int marginy) {
+    if (ax < (bx + bsizex - marginx) && (ax + asizex) >(bx + marginx) && ay < (by + bsizey - marginy) && (ay + asizey) >(by + marginy)) {
         return 1;
     }
     else {
